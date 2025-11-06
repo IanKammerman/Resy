@@ -1,6 +1,5 @@
 import argparse
-import sys
-from dotenv import load_dotenv
+import os
 
 from resy_script.config import ResyConfig
 from resy_script.runner import attempt_reservation
@@ -25,7 +24,26 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
-    load_dotenv()
+    # Lightweight .env loader to avoid external dependency
+    def load_env_file(path: str = ".env") -> None:
+        if not os.path.exists(path):
+            return
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                for raw_line in f:
+                    line = raw_line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if key and key not in os.environ:
+                        os.environ[key] = value
+        except Exception:
+            # Ignore .env parsing errors and proceed with existing environment
+            pass
+
+    load_env_file()
     parser = build_parser()
     args = parser.parse_args(argv)
 
